@@ -10,3 +10,6 @@ app.include_router(test.router)
 @app.get("/")
 def root():
     return {"message": "Banking API is running"}
+
+
+# test
