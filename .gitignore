@@ -1,4 +1,10 @@
 .venv/
 __pycache__/
 *.pyc
+<<<<<<< HEAD
 .pytest_cache/
+=======
+.pytest_cache/
+.idea/
+app/data/seed.py
+>>>>>>> 1a7c894 (Add users endpoints with role-based permissions and tests.)
