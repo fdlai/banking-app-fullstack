@@ -1,9 +1,12 @@
 from fastapi import FastAPI
 
+from routers import test
+
 app = FastAPI()
 
+app.include_router(test.router)
 
-# Some test code to check if the API is running
+
 @app.get("/")
 def root():
     return {"message": "Banking API is running"}
