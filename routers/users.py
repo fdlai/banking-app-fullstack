@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.core import permissions
-from app.core.dependencies import get_current_user
-from app.data.seed import EMAIL_INDEX, USERS, USERS_BY_ID, next_id
-from app.schemas.user import UserCreate, UserOut, UserRole, UserUpdate
+from core import permissions
+from core.dependencies import get_current_user
+from data.seed import EMAIL_INDEX, USERS, USERS_BY_ID, next_id
+from schemas.user import UserCreate, UserOut, UserRole, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 

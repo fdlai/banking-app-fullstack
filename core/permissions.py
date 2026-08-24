@@ -1,4 +1,4 @@
-from app.schemas.user import UserOut, UserRole
+from schemas.user import UserOut, UserRole
 
 STAFF = (UserRole.TELLER, UserRole.ADMIN)
 

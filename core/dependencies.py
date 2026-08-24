@@ -1,7 +1,7 @@
 from fastapi import Header, HTTPException, status
 
-from app.data.seed import USERS_BY_ID
-from app.schemas.user import UserOut
+from data.seed import USERS_BY_ID
+from schemas.user import UserOut
 
 
 def get_current_user(x_user_id: int = Header()) -> UserOut:
