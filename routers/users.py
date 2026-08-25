@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from core import permissions
 from core.dependencies import get_current_user
-from data.seed import EMAIL_INDEX, USERS, USERS_BY_ID, next_id
+from data import user_store
 from schemas.user import UserCreate, UserOut, UserRole, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -29,7 +29,7 @@ def list_users(
         )
 
     allowed = permissions.visible_roles(actor)
-    results = [u for u in USERS if u.role in allowed]
+    results = [u for u in user_store.list_users() if u.role in allowed]
     if role is not None:
         results = [u for u in results if u.role == role]
     return results[offset : offset + limit]
@@ -45,7 +45,7 @@ def list_users(
     },
 )
 def get_user(user_id: int, actor: UserOut = Depends(get_current_user)):
-    target = USERS_BY_ID.get(user_id)
+    target = user_store.get_user(user_id)
     if target is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -77,24 +77,21 @@ def create_user(payload: UserCreate, actor: UserOut = Depends(get_current_user))
         )
 
     email = payload.email.lower()
-    if email in EMAIL_INDEX:
+    if user_store.email_taken(email):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Email already registered: {email}",
         )
 
     user = UserOut(
-        id=next_id(),
+        id=user_store.next_id(),
         role=payload.role,
         first_name=payload.first_name,
         last_name=payload.last_name,
         email=email,
         dob=payload.dob,
     )
-    USERS.append(user)
-    USERS_BY_ID[user.id] = user
-    EMAIL_INDEX[email] = user.id
-    return user
+    return user_store.add_user(user)
 
 
 @router.patch(
@@ -112,7 +109,7 @@ def update_user(
     payload: UserUpdate,
     actor: UserOut = Depends(get_current_user),
 ):
-    target = USERS_BY_ID.get(user_id)
+    target = user_store.get_user(user_id)
     if target is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -129,20 +126,14 @@ def update_user(
     new_email = changes.get("email")
     if new_email:
         new_email = new_email.lower()
-        existing = EMAIL_INDEX.get(new_email)
-        if existing is not None and existing != user_id:
+        if user_store.email_taken(new_email, ignore_id=user_id):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Email already registered: {new_email}",
             )
-        EMAIL_INDEX.pop(target.email.lower(), None)
-        EMAIL_INDEX[new_email] = user_id
         changes["email"] = new_email
 
-    updated = target.model_copy(update=changes)
-    USERS_BY_ID[user_id] = updated
-    USERS[USERS.index(target)] = updated
-    return updated
+    return user_store.update_user(user_id, changes)
 
 
 @router.delete(
@@ -161,13 +152,9 @@ def delete_user(user_id: int, actor: UserOut = Depends(get_current_user)):
             detail="Admin access required",
         )
 
-    target = USERS_BY_ID.pop(user_id, None)
-    if target is None:
+    if user_store.delete_user(user_id) is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User not found: {user_id}",
         )
-
-    EMAIL_INDEX.pop(target.email.lower(), None)
-    USERS.remove(target)
     return None
