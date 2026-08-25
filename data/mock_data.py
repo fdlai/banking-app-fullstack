@@ -159,7 +159,48 @@ accounts = [
     },
 ]
 
-# I left these empty for now, but the team member working on transactions and transfers can fill them in with mock data as needed.
-transactions = []
+transactions = [
+    {
+        "id": 1,
+        "account_id": 101,
+        "transaction_type": "deposit",
+        "amount": 500.00,
+        "timestamp": "2026-08-01T09:15:00+00:00",
+        "description": "Payroll deposit",
+    },
+    {
+        "id": 2,
+        "account_id": 101,
+        "transaction_type": "withdrawal",
+        "amount": 120.50,
+        "timestamp": "2026-08-05T14:32:00+00:00",
+        "description": "Grocery store",
+    },
+    {
+        "id": 3,
+        "account_id": 103,
+        "transaction_type": "deposit",
+        "amount": 250.00,
+        "timestamp": "2026-08-10T11:00:00+00:00",
+        "description": "Freelance payment",
+    },
+    {
+        "id": 4,
+        "account_id": 107,
+        "transaction_type": "withdrawal",
+        "amount": 60.00,
+        "timestamp": "2026-08-12T18:45:00+00:00",
+        "description": "ATM withdrawal",
+    },
+    {
+        "id": 5,
+        "account_id": 108,
+        "transaction_type": "deposit",
+        "amount": 1000.00,
+        "timestamp": "2026-08-15T08:20:00+00:00",
+        "description": "Transfer from savings",
+    },
+]
 
+# I left this empty for now, but the team member working on transfers can fill it in with mock data as needed.
 transfers = []
