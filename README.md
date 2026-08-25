@@ -183,7 +183,68 @@ POST /transfers
 | Team Member | Feature                                 |
 | ----------- | --------------------------------------- |
 | Luis        | Users / roles                           |
-| Emanuel     | Accounts                                |
+| Emanuel     | Team lead + integration                                |
 | Steven      | Transactions, deposits, and withdrawals |
 | Josiah      | Transfers                               |
-| Fred        | FastAPI structure and integration       |
+| Fred        | Accounts       |
+
+## Database Conventions
+
+The application uses **PostgreSQL** for persistent data storage.
+
+### ORM
+
+The team will use **SQLAlchemy** as the ORM for interacting with PostgreSQL.
+
+## PostgreSQL Driver:
+
+Psycopg 3
+
+### Tables
+
+The database contains four main tables:
+
+- `users`
+- `accounts`
+- `transactions`
+- `transfers`
+
+Where possible, database column names should remain consistent with the names previously used in `data/mock_data.py`.
+
+### Primary Keys
+
+Each table uses `id` as its primary key:
+
+- `users.id`
+- `accounts.id`
+- `transactions.id`
+- `transfers.id`
+
+### Foreign Keys / Relationships
+
+The following foreign-key relationships should be used:
+
+- `accounts.user_id` → `users.id`
+- `transactions.account_id` → `accounts.id`
+- `transfers.from_account_id` → `accounts.id`
+- `transfers.to_account_id` → `accounts.id`
+
+This gives us the following basic relationships:
+
+- One user can have many accounts.
+- One account can have many transactions.
+- An account can participate in many transfers as either the sending or receiving account.
+
+### Money
+
+Monetary values such as `balance` and `amount` should use an exact decimal type in PostgreSQL rather than a floating-point type.
+
+Recommended PostgreSQL type:
+
+`NUMERIC(12, 2)`
+
+This applies to:
+
+- `accounts.balance`
+- `transactions.amount`
+- `transfers.amount`
