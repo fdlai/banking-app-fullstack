@@ -5,7 +5,8 @@ from datetime import datetime
 router = APIRouter()
 
 
-from data.mock_data import accounts, transfers
+from data.mock_data import accounts, transfers, transactions
+from routers.transactions import get_account, record_transaction
 
 
 class TransferRequest(BaseModel):
@@ -47,6 +48,9 @@ def create_transfer(request: TransferRequest):
             detail=f"Account is {to_account['status']} and cannot process withdrawals"
         )
 
+    if to_account["id"] == from_account["id"]:
+        raise HTTPException(status_code=400, detail="Cannot transfer to the same account" )
+
     if request.amount <= 0:
         raise HTTPException(status_code=400, detail="Transfer amount must be greater than zero" )
 
@@ -56,6 +60,22 @@ def create_transfer(request: TransferRequest):
     #Actual Transfer
     from_account["balance"] -= request.amount
     to_account["balance"] += request.amount
+
+    #Record Transactions (From)
+    record_transaction(
+        request.from_account_id,
+        "withdrawal",
+        request.amount,
+        f"Transfer to account {request.to_account_id}"
+    )
+
+    #Record Transactions (To)
+    record_transaction(
+        request.to_account_id,
+        "deposit",
+        request.amount,
+        f"Transfer from account {request.from_account_id}"
+    )
 
     #Record
     transfer = {
