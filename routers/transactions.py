@@ -1,98 +1,116 @@
-from datetime import datetime, timezone
+from datetime import datetime
+from decimal import Decimal
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy.orm import Session
 
-from data.mock_data import accounts, transactions
+from database import get_db
+from models.account import Account
+from models.transactions import Transaction
 
 router = APIRouter(prefix="/accounts", tags=["transactions"])
 
 
 class TransactionCreate(BaseModel):
-    amount: float
+    amount: Decimal
     description: str | None = None
 
 
-def get_account(account_id: int):
-    for account in accounts:
-        if account["id"] == account_id:
-            return account
+class TransactionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
 
-    raise HTTPException(
-        status_code=404,
-        detail="Account not found"
-    )
-
-
-def record_transaction(account_id: int, transaction_type: str, amount: float, description: str | None):
-    new_id = max((t["id"] for t in transactions), default=0) + 1
-
-    transaction = {
-        "id": new_id,
-        "account_id": account_id,
-        "transaction_type": transaction_type,
-        "amount": amount,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "description": description,
-    }
-
-    transactions.append(transaction)
-
-    return transaction
+    id: int
+    account_id: int
+    transaction_type: str
+    amount: Decimal
+    timestamp: datetime
+    description: str | None
 
 
-@router.post("/{account_id}/deposit")
-def deposit(account_id: int, request: TransactionCreate):
+def get_account(db: Session, account_id: int) -> Account:
+    account = db.get(Account, account_id)
+
+    if account is None:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    return account
+
+
+@router.post("/{account_id}/deposit", response_model=TransactionOut)
+def deposit(account_id: int, request: TransactionCreate, db: Session = Depends(get_db)):
     if request.amount <= 0:
         raise HTTPException(
             status_code=400,
             detail="Deposit amount must be greater than zero"
         )
 
-    account = get_account(account_id)
+    account = get_account(db, account_id)
 
-    # frozen/closed accounts can't transact
-    if account["status"] != "active":
+    if account.status != "active":
         raise HTTPException(
             status_code=400,
-            detail=f"Account is {account['status']} and cannot accept deposits"
+            detail=f"Account is {account.status} and cannot accept deposits"
         )
 
-    account["balance"] += request.amount
+    account.balance += request.amount
 
-    return record_transaction(account_id, "deposit", request.amount, request.description)
+    transaction = Transaction(
+        account_id=account_id,
+        transaction_type="deposit",
+        amount=request.amount,
+        description=request.description,
+    )
+    db.add(transaction)
+    db.commit()
+    db.refresh(transaction)
+
+    return transaction
 
 
-@router.post("/{account_id}/withdraw")
-def withdraw(account_id: int, request: TransactionCreate):
+@router.post("/{account_id}/withdraw", response_model=TransactionOut)
+def withdraw(account_id: int, request: TransactionCreate, db: Session = Depends(get_db)):
     if request.amount <= 0:
         raise HTTPException(
             status_code=400,
             detail="Withdrawal amount must be greater than zero"
         )
 
-    account = get_account(account_id)
+    account = get_account(db, account_id)
 
-    # frozen/closed accounts can't transact
-    if account["status"] != "active":
+    if account.status != "active":
         raise HTTPException(
             status_code=400,
-            detail=f"Account is {account['status']} and cannot process withdrawals"
+            detail=f"Account is {account.status} and cannot process withdrawals"
         )
 
-    if request.amount > account["balance"]:
+    if request.amount > account.balance:
         raise HTTPException(
             status_code=400,
             detail="Insufficient funds"
         )
 
-    account["balance"] -= request.amount
+    account.balance -= request.amount
 
-    return record_transaction(account_id, "withdrawal", request.amount, request.description)
+    transaction = Transaction(
+        account_id=account_id,
+        transaction_type="withdrawal",
+        amount=request.amount,
+        description=request.description,
+    )
+    db.add(transaction)
+    db.commit()
+    db.refresh(transaction)
+
+    return transaction
 
 
-@router.get("/{account_id}/transactions")
-def get_account_transactions(account_id: int):
-    get_account(account_id)
+@router.get("/{account_id}/transactions", response_model=list[TransactionOut])
+def get_account_transactions(account_id: int, db: Session = Depends(get_db)):
+    get_account(db, account_id)
 
-    return [t for t in transactions if t["account_id"] == account_id]
+    return (
+        db.query(Transaction)
+        .filter(Transaction.account_id == account_id)
+        .all()
+    )
