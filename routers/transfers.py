@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timezone
 
 router = APIRouter()
 
@@ -83,7 +83,7 @@ def create_transfer(request: TransferRequest):
         "from_account_id": request.from_account_id,
         "to_account_id": request.to_account_id,
         "amount": request.amount,
-        "timestamp": datetime.now(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "status": "completed"
     }
 
