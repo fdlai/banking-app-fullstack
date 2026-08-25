@@ -17,6 +17,4 @@ class Transaction(Base):
     timestamp: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())
     description: Mapped[str | None] = mapped_column(nullable=True)
 
-    # One-directional: Emanuel's real Account model has no reverse "transactions"
-    # attribute yet, so back_populates isn't used here.
     account: Mapped["Account"] = relationship()
