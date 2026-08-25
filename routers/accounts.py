@@ -1,7 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
-from data.mock_data import accounts
+from data.mock_data import accounts, users
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
 
@@ -9,7 +9,6 @@ router = APIRouter(prefix="/accounts", tags=["accounts"])
 class AccountCreate(BaseModel):
     user_id: int
     account_type: str
-    balance: float
     status: str
 
 
@@ -30,15 +29,23 @@ def get_account(account_id: int):
     )
 
 
-@router.post("")
+@router.post("", status_code=status.HTTP_201_CREATED)
 def create_account(account: AccountCreate):
+    user_exists = any(user["id"] == account.user_id for user in users)
+
+    if not user_exists:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
     new_id = max(a["id"] for a in accounts) + 1 if accounts else 1
 
     new_account = {
         "id": new_id,
         "user_id": account.user_id,
         "account_type": account.account_type,
-        "balance": account.balance,
+        "balance": 0.0,
         "status": account.status,
     }
 
