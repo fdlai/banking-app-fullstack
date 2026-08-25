@@ -5,6 +5,7 @@ users = [
         "last_name": "Johnson",
         "email": "alice.johnson@yahoo.com",
         "role": "customer",
+        "dob": "1988-03-12",
     },
     {
         "id": 2,
@@ -12,6 +13,7 @@ users = [
         "last_name": "Smith",
         "email": "bob.smith@gmail.com",
         "role": "customer",
+        "dob": "1979-11-02",
     },
     {
         "id": 3,
@@ -19,6 +21,7 @@ users = [
         "last_name": "Martinez",
         "email": "carlos.martinez@yahoo.com",
         "role": "customer",
+        "dob": "1993-06-25",
     },
     {
         "id": 4,
@@ -26,6 +29,7 @@ users = [
         "last_name": "Williams",
         "email": "diana.williams@example.com",
         "role": "customer",
+        "dob": "1985-01-30",
     },
     {
         "id": 5,
@@ -33,6 +37,7 @@ users = [
         "last_name": "Brown",
         "email": "ethan.brown@gmail.com",
         "role": "customer",
+        "dob": "1996-09-08",
     },
     {
         "id": 6,
@@ -40,6 +45,7 @@ users = [
         "last_name": "Khan",
         "email": "fatima.khan@yahoo.com",
         "role": "customer",
+        "dob": "1991-04-17",
     },
     {
         "id": 7,
@@ -47,6 +53,7 @@ users = [
         "last_name": "Lee",
         "email": "grace.lee@example.com",
         "role": "customer",
+        "dob": "2000-12-05",
     },
     {
         "id": 8,
@@ -54,6 +61,7 @@ users = [
         "last_name": "Davis",
         "email": "henry.davis@gmail.com",
         "role": "customer",
+        "dob": "1974-07-21",
     },
     {
         "id": 9,
@@ -61,6 +69,7 @@ users = [
         "last_name": "Wilson",
         "email": "sarah.wilson@bank.com",
         "role": "admin",
+        "dob": "1982-02-14",
     },
     {
         "id": 10,
@@ -68,6 +77,23 @@ users = [
         "last_name": "Anderson",
         "email": "michael.anderson@bank.com",
         "role": "admin",
+        "dob": "1977-10-09",
+    },
+    {
+        "id": 11,
+        "first_name": "Olivia",
+        "last_name": "Turner",
+        "email": "olivia.turner@bank.com",
+        "role": "teller",
+        "dob": "1990-05-19",
+    },
+    {
+        "id": 12,
+        "first_name": "Daniel",
+        "last_name": "Reyes",
+        "email": "daniel.reyes@bank.com",
+        "role": "teller",
+        "dob": "1986-08-23",
     },
 ]
 
