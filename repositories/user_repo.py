@@ -1,10 +1,12 @@
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from models.user import User, UserRole
 
 
-def get_by_id(db: Session, user_id: int) -> User | None:
+def get_by_id(db: Session, user_id: UUID) -> User | None:
     return db.get(User, user_id)
 
 

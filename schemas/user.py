@@ -1,5 +1,7 @@
 from enum import Enum
 from datetime import date
+from uuid import UUID
+
 from pydantic import BaseModel, EmailStr
 
 class UserRole(str, Enum):
@@ -8,7 +10,7 @@ class UserRole(str, Enum):
     ADMIN = "admin"
 
 class UserOut(BaseModel):
-    id: int
+    id: UUID
     role: UserRole
     first_name: str
     last_name: str

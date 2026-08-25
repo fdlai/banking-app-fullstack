@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -7,7 +9,7 @@ from repositories import user_repo
 
 
 def get_current_user(
-    x_user_id: int = Header(),
+    x_user_id: UUID = Header(),
     db: Session = Depends(get_db),
 ) -> User:
     """Stand-in for real authentication.

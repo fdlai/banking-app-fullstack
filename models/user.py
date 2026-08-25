@@ -1,7 +1,8 @@
 import enum
+import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Enum, String, func
+from sqlalchemy import Date, DateTime, Enum, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
@@ -16,7 +17,9 @@ class UserRole(str, enum.Enum):
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, primary_key=True, server_default=func.gen_random_uuid()
+    )
     role: Mapped[UserRole] = mapped_column(
         Enum(UserRole, name="user_role", values_callable=lambda e: [m.value for m in e]),
         nullable=False,

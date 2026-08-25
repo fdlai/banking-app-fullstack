@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
@@ -12,13 +14,16 @@ from schemas.user import UserCreate, UserOut, UserRole, UserUpdate
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.get("", response_model=list[UserOut],
+@router.get(
+    "",
+    response_model=list[UserOut],
     responses={
         401: {"description": "Unknown or missing acting user"},
         403: {"description": "Staff access required"},
     },
 )
-def list_users(role: UserRole | None = Query(default=None),
+def list_users(
+    role: UserRole | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     actor: User = Depends(get_current_user),
@@ -37,7 +42,9 @@ def list_users(role: UserRole | None = Query(default=None),
     return user_repo.list_by_roles(db, allowed, limit, offset)
 
 
-@router.get("/{user_id}", response_model=UserOut,
+@router.get(
+    "/{user_id}",
+    response_model=UserOut,
     responses={
         401: {"description": "Unknown or missing acting user"},
         403: {"description": "Not permitted to view this user"},
@@ -45,7 +52,7 @@ def list_users(role: UserRole | None = Query(default=None),
     },
 )
 def get_user(
-    user_id: int,
+    user_id: UUID,
     actor: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -63,7 +70,9 @@ def get_user(
     return target
 
 
-@router.post("", response_model=UserOut,
+@router.post(
+    "",
+    response_model=UserOut,
     status_code=status.HTTP_201_CREATED,
     responses={
         401: {"description": "Unknown or missing acting user"},
@@ -104,7 +113,9 @@ def create_user(
     return user
 
 
-@router.patch("/{user_id}", response_model=UserOut,
+@router.patch(
+    "/{user_id}",
+    response_model=UserOut,
     responses={
         401: {"description": "Unknown or missing acting user"},
         403: {"description": "Not permitted to update this user"},
@@ -113,7 +124,7 @@ def create_user(
     },
 )
 def update_user(
-    user_id: int,
+    user_id: UUID,
     payload: UserUpdate,
     actor: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -150,7 +161,9 @@ def update_user(
     return target
 
 
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT,
+@router.delete(
+    "/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
     responses={
         401: {"description": "Unknown or missing acting user"},
         403: {"description": "Admin access required"},
@@ -158,7 +171,7 @@ def update_user(
     },
 )
 def delete_user(
-    user_id: int,
+    user_id: UUID,
     actor: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
