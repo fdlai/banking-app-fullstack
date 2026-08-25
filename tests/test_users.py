@@ -12,7 +12,7 @@ client = TestClient(app)
 ADMIN, CUSTOMER, OTHER_CUSTOMER = 9, 1, 2
 
 CUSTOMER_COUNT = 8
-TOTAL_USERS = 10
+TOTAL_USERS = len(mock_data.users)
 
 
 @pytest.fixture(autouse=True)
