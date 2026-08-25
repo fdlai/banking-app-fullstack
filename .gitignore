@@ -2,14 +2,5 @@
 __pycache__/
 *.pyc
 .env
-<<<<<<< HEAD
-.pytest_cache/
-=======
 .pytest_cache/
 .idea/
-<<<<<<< HEAD
-app/data/seed.py
->>>>>>> 1a7c894 (Add users endpoints with role-based permissions and tests.)
-=======
-data/seed.py
->>>>>>> 4525997 (Users endpoints added and tested)
