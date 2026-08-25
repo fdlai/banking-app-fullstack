@@ -79,6 +79,22 @@ users = [
         "role": "admin",
         "dob": "1977-10-09",
     },
+    {
+        "id": 11,
+        "first_name": "Olivia",
+        "last_name": "Turner",
+        "email": "olivia.turner@bank.com",
+        "role": "teller",
+        "dob": "1990-05-19",
+    },
+    {
+        "id": 12,
+        "first_name": "Daniel",
+        "last_name": "Reyes",
+        "email": "daniel.reyes@bank.com",
+        "role": "teller",
+        "dob": "1986-08-23",
+    },
 ]
 
 
