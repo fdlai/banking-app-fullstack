@@ -12,7 +12,7 @@ database.
    `@` → `%40`, `!` → `%21`, etc. Example:
 
    ```env
-   DATABASE_URL=postgresql+psycopg://postgres:S%40nn%21nmod333@localhost:5432/bank
+   DATABASE_URL=postgresql+psycopg://postgres:YOURPASSWORD@localhost:5432/bank
    ```
 
 2. Also set `JWT_SECRET_KEY` in `.env`. Generate one with:
