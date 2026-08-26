@@ -1,5 +1,7 @@
 # /routers/accounts.py
+
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -7,21 +9,38 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from core.dependencies import get_current_user
 from database import get_db
 from models.account import Account
 from models.user import User
+from schemas.user import UserOut, UserRole
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
 
 
 class AccountCreate(BaseModel):
     user_id: UUID
-    account_type: str
-    status: str
+    account_type: Literal["checking", "savings"]
+    status: Literal["active", "frozen", "closed"]
+
+
+def require_staff(
+    actor: UserOut = Depends(get_current_user),
+) -> UserOut:
+    if actor.role not in (UserRole.ADMIN, UserRole.TELLER):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Staff access required",
+        )
+
+    return actor
 
 
 @router.get("")
-def get_accounts(db: Session = Depends(get_db)):
+def get_accounts(
+    db: Session = Depends(get_db),
+    actor: UserOut = Depends(require_staff),
+):
     accounts = db.scalars(select(Account)).all()
 
     return accounts
@@ -31,24 +50,43 @@ def get_accounts(db: Session = Depends(get_db)):
 def get_account(
     account_id: int,
     db: Session = Depends(get_db),
+    actor: UserOut = Depends(get_current_user),
 ):
     account = db.get(Account, account_id)
 
     if account is None:
-        raise HTTPException(status_code=404, detail="Account not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Account not found",
+        )
 
-    return account
+    # Admins and tellers can view any account.
+    if actor.role in (UserRole.ADMIN, UserRole.TELLER):
+        return account
+
+    # Customers can only view their own account.
+    if actor.role == UserRole.CUSTOMER and account.user_id == actor.id:
+        return account
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Not permitted to view this account",
+    )
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_account(
     account: AccountCreate,
     db: Session = Depends(get_db),
+    actor: UserOut = Depends(require_staff),
 ):
     user = db.get(User, account.user_id)
 
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
 
     new_account = Account(
         user_id=account.user_id,
