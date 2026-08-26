@@ -10,6 +10,9 @@ from sqlalchemy import pool
 from alembic import context
 from config import settings
 from database import Base
+from models.account import Account
+from models.transactions import Transaction
+from models.transfers import Transfer
 from models.user import User  # noqa: F401 — import so Alembic sees the table
 
 # this is the Alembic Config object, which provides

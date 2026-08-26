@@ -1,54 +1,64 @@
-from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel
+# /routers/accounts.py
+from decimal import Decimal
+from uuid import UUID
 
-from data.mock_data import accounts, users
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from database import get_db
+from models.account import Account
+from models.user import User
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
 
 
 class AccountCreate(BaseModel):
-    user_id: int
+    user_id: UUID
     account_type: str
     status: str
 
 
 @router.get("")
-def get_accounts():
+def get_accounts(db: Session = Depends(get_db)):
+    accounts = db.scalars(select(Account)).all()
+
     return accounts
 
 
 @router.get("/{account_id}")
-def get_account(account_id: int):
-    for account in accounts:
-        if account["id"] == account_id:
-            return account
+def get_account(
+    account_id: int,
+    db: Session = Depends(get_db),
+):
+    account = db.get(Account, account_id)
 
-    raise HTTPException(
-        status_code=404,
-        detail="Account not found"
-    )
+    if account is None:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    return account
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-def create_account(account: AccountCreate):
-    user_exists = any(user["id"] == account.user_id for user in users)
+def create_account(
+    account: AccountCreate,
+    db: Session = Depends(get_db),
+):
+    user = db.get(User, account.user_id)
 
-    if not user_exists:
-        raise HTTPException(
-            status_code=404,
-            detail="User not found"
-        )
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
 
-    new_id = max(a["id"] for a in accounts) + 1 if accounts else 1
+    new_account = Account(
+        user_id=account.user_id,
+        account_type=account.account_type,
+        balance=Decimal("0.00"),
+        status=account.status,
+    )
 
-    new_account = {
-        "id": new_id,
-        "user_id": account.user_id,
-        "account_type": account.account_type,
-        "balance": 0.0,
-        "status": account.status,
-    }
-
-    accounts.append(new_account)
+    db.add(new_account)
+    db.commit()
+    db.refresh(new_account)
 
     return new_account
