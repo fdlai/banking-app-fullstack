@@ -1,13 +1,11 @@
-from enum import Enum
 from datetime import date
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr
 
-class UserRole(str, Enum):
-    CUSTOMER = "customer"
-    TELLER = "teller"
-    ADMIN = "admin"
+from data.enums import UserRole
+
+__all__ = ["UserRole", "UserOut", "UserCreate", "UserUpdate"]
 
 class UserOut(BaseModel):
     id: UUID
@@ -28,3 +26,6 @@ class UserUpdate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     email: EmailStr | None = None
+
+class UserRoleUpdate(BaseModel):
+    role: UserRole

@@ -9,7 +9,7 @@ from database import get_db
 from models.user import User
 from models.user import UserRole as ModelRole
 from repositories import user_repo
-from schemas.user import UserCreate, UserOut, UserRole, UserUpdate
+from schemas.user import UserCreate, UserOut, UserRole, UserRoleUpdate, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -156,6 +156,40 @@ def update_user(
     for field, value in changes.items():
         setattr(target, field, value)
 
+    db.commit()
+    db.refresh(target)
+    return target
+
+
+@router.patch(
+    "/{user_id}/role",
+    response_model=UserOut,
+    responses={
+        401: {"description": "Unknown or missing acting user"},
+        403: {"description": "Admin access required"},
+        404: {"description": "User not found"},
+    },
+)
+def update_user_role(
+    user_id: UUID,
+    payload: UserRoleUpdate,
+    actor: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not permissions.can_update_role(actor):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+
+    target = user_repo.get_by_id(db, user_id)
+    if target is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User not found: {user_id}",
+        )
+
+    target.role = ModelRole(payload.role.value)
     db.commit()
     db.refresh(target)
     return target

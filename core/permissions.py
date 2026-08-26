@@ -47,3 +47,8 @@ def can_update_user(actor: UserOut, target: UserOut) -> bool:
 def can_delete_user(actor: UserOut) -> bool:
     """Admin only."""
     return actor.role == UserRole.ADMIN
+
+
+def can_update_role(actor: UserOut) -> bool:
+    """Admin only — role changes never ride along with a regular profile edit."""
+    return actor.role == UserRole.ADMIN
