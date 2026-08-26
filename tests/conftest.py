@@ -1,15 +1,15 @@
 """Test database setup.
 
-The users endpoints read and write Postgres, so the suite needs a database of
-its own. This builds `<db>_test` alongside the real one, and gives each test a
-session wrapped in a transaction that is rolled back afterwards.
+The application endpoints read and write Postgres, so the suite needs a
+database of its own. This builds `<db>_test` alongside the real one, and gives
+each test a session wrapped in a transaction that is rolled back afterwards.
 
-Every user a test needs is created by the `seeded_users` fixture inside that
-transaction, so the suite depends on no ambient database state and leaves none
-behind.
+Test data is created by reusable fixtures inside that transaction, so the
+suite depends on no ambient database state and leaves none behind.
 """
 
 from datetime import date
+from decimal import Decimal
 
 import pytest
 from sqlalchemy import create_engine, text
@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from config import settings
 from database import Base, get_db
 from main import app
+from models.account import Account
 from models.user import User, UserRole
 
 TEST_URL = make_url(settings.database_url).set(
@@ -117,8 +118,49 @@ def seeded_users(db):
             dob=date(1979, 11, 2),
         ),
     }
+
     db.add_all(users.values())
     db.commit()
+
     for user in users.values():
         db.refresh(user)
+
     return users
+
+
+# first account
+@pytest.fixture
+def active_account(db, seeded_users):
+    customer = seeded_users["customer"]
+
+    account = Account(
+        user_id=customer.id,
+        account_type="checking",
+        balance=Decimal("1000.00"),
+        status="active",
+    )
+
+    db.add(account)
+    db.commit()
+    db.refresh(account)
+
+    return account
+
+
+# second account
+@pytest.fixture
+def second_active_account(db, seeded_users):
+    customer = seeded_users["customer"]
+
+    account = Account(
+        user_id=customer.id,
+        account_type="savings",
+        balance=Decimal("500.00"),
+        status="active",
+    )
+
+    db.add(account)
+    db.commit()
+    db.refresh(account)
+
+    return account
