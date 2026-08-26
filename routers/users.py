@@ -1,8 +1,14 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
 
 from core import permissions
 from core.dependencies import get_current_user
-from data import user_store
+from database import get_db
+from models.user import User
+from models.user import UserRole as ModelRole
+from repositories import user_repo
 from schemas.user import UserCreate, UserOut, UserRole, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -20,7 +26,8 @@ def list_users(
     role: UserRole | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
-    actor: UserOut = Depends(get_current_user),
+    actor: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     if not permissions.can_list_users(actor):
         raise HTTPException(
@@ -29,10 +36,10 @@ def list_users(
         )
 
     allowed = permissions.visible_roles(actor)
-    results = [u for u in user_store.list_users() if u.role in allowed]
     if role is not None:
-        results = [u for u in results if u.role == role]
-    return results[offset : offset + limit]
+        allowed = allowed & {ModelRole(role.value)}
+
+    return user_repo.list_by_roles(db, allowed, limit, offset)
 
 
 @router.get(
@@ -44,8 +51,12 @@ def list_users(
         404: {"description": "User not found"},
     },
 )
-def get_user(user_id: int, actor: UserOut = Depends(get_current_user)):
-    target = user_store.get_user(user_id)
+def get_user(
+    user_id: UUID,
+    actor: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    target = user_repo.get_by_id(db, user_id)
     if target is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -69,29 +80,37 @@ def get_user(user_id: int, actor: UserOut = Depends(get_current_user)):
         409: {"description": "Email already registered"},
     },
 )
-def create_user(payload: UserCreate, actor: UserOut = Depends(get_current_user)):
-    if not permissions.can_create_user(actor, payload.role):
+def create_user(
+    payload: UserCreate,
+    actor: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    target_role = ModelRole(payload.role.value)
+
+    if not permissions.can_create_user(actor, target_role):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Not permitted to create a user with role '{payload.role.value}'",
         )
 
     email = payload.email.lower()
-    if user_store.email_taken(email):
+    if user_repo.get_by_email(db, email):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Email already registered: {email}",
         )
 
-    user = UserOut(
-        id=user_store.next_id(),
-        role=payload.role,
+    user = User(
+        role=target_role,
         first_name=payload.first_name,
         last_name=payload.last_name,
         email=email,
         dob=payload.dob,
     )
-    return user_store.add_user(user)
+    user_repo.create(db, user)
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 @router.patch(
@@ -105,11 +124,12 @@ def create_user(payload: UserCreate, actor: UserOut = Depends(get_current_user))
     },
 )
 def update_user(
-    user_id: int,
+    user_id: UUID,
     payload: UserUpdate,
-    actor: UserOut = Depends(get_current_user),
+    actor: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    target = user_store.get_user(user_id)
+    target = user_repo.get_by_id(db, user_id)
     if target is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -123,17 +143,22 @@ def update_user(
 
     changes = payload.model_dump(exclude_unset=True)
 
-    new_email = changes.get("email")
-    if new_email:
-        new_email = new_email.lower()
-        if user_store.email_taken(new_email, ignore_id=user_id):
+    if "email" in changes:
+        new_email = changes["email"].lower()
+        existing = user_repo.get_by_email(db, new_email)
+        if existing is not None and existing.id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Email already registered: {new_email}",
             )
         changes["email"] = new_email
 
-    return user_store.update_user(user_id, changes)
+    for field, value in changes.items():
+        setattr(target, field, value)
+
+    db.commit()
+    db.refresh(target)
+    return target
 
 
 @router.delete(
@@ -145,16 +170,24 @@ def update_user(
         404: {"description": "User not found"},
     },
 )
-def delete_user(user_id: int, actor: UserOut = Depends(get_current_user)):
+def delete_user(
+    user_id: UUID,
+    actor: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     if not permissions.can_delete_user(actor):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
         )
 
-    if user_store.delete_user(user_id) is None:
+    target = user_repo.get_by_id(db, user_id)
+    if target is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User not found: {user_id}",
         )
+
+    user_repo.delete(db, target)
+    db.commit()
     return None

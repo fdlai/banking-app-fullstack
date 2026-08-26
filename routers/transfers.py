@@ -6,7 +6,6 @@ router = APIRouter()
 
 
 from data.mock_data import accounts, transfers, transactions
-from routers.transactions import get_account, record_transaction
 
 
 class TransferRequest(BaseModel):
