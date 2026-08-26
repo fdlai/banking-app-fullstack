@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey
-from database.database import Base
+from database import Base
 
 
 class Transfer(Base):
