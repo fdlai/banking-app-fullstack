@@ -1,8 +1,38 @@
+import uuid
+from datetime import date
+
+import pytest
 from fastapi.testclient import TestClient
 
 from main import app
+from models.user import User
 
 client = TestClient(app)
+
+
+
+
+@pytest.fixture
+def admin(seeded_users):
+    return seeded_users["admin"]
+
+
+@pytest.fixture
+def teller(seeded_users):
+    return seeded_users["teller"]
+
+
+@pytest.fixture
+def customer(seeded_users):
+    return seeded_users["customer"]
+
+
+@pytest.fixture
+def other_customer(seeded_users):
+    return seeded_users["other_customer"]
+
+
+
 
 
 def test_transfer_success():

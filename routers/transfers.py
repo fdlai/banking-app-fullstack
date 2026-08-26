@@ -4,6 +4,7 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy import NUMERIC, Column, Integer, String, Numeric, DateTime, ForeignKey
 
 from database import get_db
 from models.account import Account
@@ -16,7 +17,7 @@ router = APIRouter()
 class TransferRequest(BaseModel):
     from_account_id: int
     to_account_id: int
-    amount: float
+    amount: Decimal
 
 
 @router.post("/transfers")
