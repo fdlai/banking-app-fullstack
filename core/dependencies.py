@@ -1,27 +1,56 @@
+"""Shared FastAPI dependencies for authentication and authorization."""
+
+from collections.abc import Callable
 from uuid import UUID
 
-from fastapi import Depends, Header, HTTPException, status
+import jwt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from database import get_db
-from models.user import User
-from repositories import user_repo
+from core.database import get_db
+from core.security import decode_access_token
+from data.models import User
+
+bearer_scheme = HTTPBearer(auto_error=False)
+
+CREDENTIALS_ERROR = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Could not validate credentials",
+    headers={"WWW-Authenticate": "Bearer"},
+)
 
 
 def get_current_user(
-    x_user_id: UUID = Header(),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ) -> User:
-    """Stand-in for real authentication.
+    """Resolve the authenticated user from the Authorization: Bearer header."""
+    if credentials is None:
+        raise CREDENTIALS_ERROR
 
-    Reads the acting user's id from the X-User-Id header. Replace the body
-    with token decoding later — the signature and call sites stay the same.
-    """
-    actor = user_repo.get_by_id(db, x_user_id)
-    if actor is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unknown or missing acting user",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return actor
+    try:
+        payload = decode_access_token(credentials.credentials)
+        user_id = UUID(payload["sub"])
+    except (jwt.PyJWTError, KeyError, ValueError):
+        raise CREDENTIALS_ERROR
+
+    user = db.get(User, user_id)
+    if user is None or not user.is_active:
+        raise CREDENTIALS_ERROR
+
+    return user
+
+
+def require_role(*allowed_roles: str) -> Callable[[User], User]:
+    """Dependency factory: allow only users holding one of the given roles."""
+
+    def dependency(current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions",
+            )
+        return current_user
+
+    return dependency

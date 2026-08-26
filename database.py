@@ -1,21 +1,9 @@
-from collections.abc import Generator
+"""Backward-compatible alias — canonical implementation lives in core/database.py.
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+Keeps a single Base/engine/SessionLocal instance shared by every module that
+still does `from database import ...` instead of `from core.database import ...`.
+"""
 
-from config import settings
+from core.database import Base, SessionLocal, engine, get_db
 
-engine = create_engine(settings.database_url, echo=False)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
-
-
-class Base(DeclarativeBase):
-    pass
-
-
-def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+__all__ = ["Base", "SessionLocal", "engine", "get_db"]

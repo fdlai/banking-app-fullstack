@@ -36,6 +36,30 @@ def require_staff(
     return actor
 
 
+def require_admin(
+    actor: UserOut = Depends(get_current_user),
+) -> UserOut:
+    if actor.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+
+    return actor
+
+
+def _get_account_or_404(db: Session, account_id: int) -> Account:
+    account = db.get(Account, account_id)
+
+    if account is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Account not found",
+        )
+
+    return account
+
+
 @router.get("")
 def get_accounts(
     db: Session = Depends(get_db),
@@ -100,3 +124,51 @@ def create_account(
     db.refresh(new_account)
 
     return new_account
+
+
+@router.patch("/{account_id}/freeze")
+def freeze_account(
+    account_id: int,
+    db: Session = Depends(get_db),
+    actor: UserOut = Depends(require_admin),
+):
+    account = _get_account_or_404(db, account_id)
+
+    if account.status == "closed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot freeze a closed account",
+        )
+
+    account.status = "frozen"
+    db.commit()
+    db.refresh(account)
+
+    return account
+
+
+@router.patch("/{account_id}/unfreeze")
+def unfreeze_account(
+    account_id: int,
+    db: Session = Depends(get_db),
+    actor: UserOut = Depends(require_admin),
+):
+    account = _get_account_or_404(db, account_id)
+
+    if account.status == "closed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot unfreeze a closed account",
+        )
+
+    if account.status != "frozen":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Account is not frozen",
+        )
+
+    account.status = "active"
+    db.commit()
+    db.refresh(account)
+
+    return account
