@@ -164,3 +164,21 @@ def second_active_account(db, seeded_users):
     db.refresh(account)
 
     return account
+
+
+@pytest.fixture
+def frozen_account(db, seeded_users):
+    customer = seeded_users["customer"]
+
+    account = Account(
+        user_id=customer.id,
+        account_type="checking",
+        balance=Decimal("1000.00"),
+        status="frozen",
+    )
+
+    db.add(account)
+    db.commit()
+    db.refresh(account)
+
+    return account
