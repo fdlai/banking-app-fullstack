@@ -1,17 +1,14 @@
-import enum
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Enum, String, Uuid, func
+from sqlalchemy import Boolean, Date, DateTime, Enum, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
+from data.enums import UserRole
 
-
-class UserRole(str, enum.Enum):
-    CUSTOMER = "customer"
-    TELLER = "teller"
-    ADMIN = "admin"
+# Re-exported for callers that still do `from models.user import UserRole`.
+__all__ = ["User", "UserRole"]
 
 
 class User(Base):
@@ -32,3 +29,5 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    hashed_password: Mapped[str] = mapped_column(String(60), nullable=False, server_default="")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
