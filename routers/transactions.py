@@ -137,3 +137,18 @@ def get_account_transactions(
         .filter(Transaction.account_id == account_id)
         .all()
     )
+
+# Get today's total transaction count for the admin dashboard
+@router.get("/transactions/today")
+def get_todays_transactions(db: Session = Depends(get_db)):
+    today = datetime.now().date()
+
+    transactions = (
+        db.query(Transaction)
+        .filter(Transaction.timestamp >= today)
+        .all()
+    )
+
+    return {
+        "count": len(transactions)
+    }

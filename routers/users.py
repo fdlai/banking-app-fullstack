@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from core import permissions
 from core.dependencies import get_current_user
+from core.security import hash_password
 from database import get_db
 from models.user import User
 from models.user import UserRole as ModelRole
@@ -106,6 +107,7 @@ def create_user(
         last_name=payload.last_name,
         email=email,
         dob=payload.dob,
+        hashed_password=hash_password(payload.password),
     )
     user_repo.create(db, user)
     db.commit()
@@ -176,22 +178,25 @@ def update_user_role(
     actor: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if not permissions.can_update_role(actor):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required",
-        )
-
     target = user_repo.get_by_id(db, user_id)
+
     if target is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User not found: {user_id}",
         )
 
+    if not permissions.can_update_role(actor, target):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not permitted to change this user's role",
+        )
+
     target.role = ModelRole(payload.role.value)
+
     db.commit()
     db.refresh(target)
+
     return target
 
 
@@ -209,19 +214,21 @@ def delete_user(
     actor: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if not permissions.can_delete_user(actor):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required",
-        )
-
     target = user_repo.get_by_id(db, user_id)
+
     if target is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User not found: {user_id}",
         )
 
+    if not permissions.can_delete_user(actor, target):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not permitted to delete this user",
+        )
+
     user_repo.delete(db, target)
     db.commit()
+
     return None

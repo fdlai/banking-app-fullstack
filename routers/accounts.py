@@ -21,7 +21,6 @@ router = APIRouter(prefix="/accounts", tags=["accounts"])
 class AccountCreate(BaseModel):
     user_id: UUID
     account_type: Literal["checking", "savings"]
-    status: Literal["active", "frozen", "closed"]
 
 
 def require_staff(
@@ -111,12 +110,17 @@ def create_account(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
+    if user.role != UserRole.CUSTOMER:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Accounts can only be created for customers",
+        )
 
     new_account = Account(
         user_id=account.user_id,
         account_type=account.account_type,
         balance=Decimal("0.00"),
-        status=account.status,
+        status="active",
     )
 
     db.add(new_account)
