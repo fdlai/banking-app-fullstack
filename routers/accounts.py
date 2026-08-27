@@ -60,6 +60,19 @@ def _get_account_or_404(db: Session, account_id: int) -> Account:
     return account
 
 
+
+@router.get("/me")
+def get_my_accounts(
+    db: Session = Depends(get_db),
+    actor: UserOut = Depends(get_current_user),
+):
+    accounts = db.scalars(
+        select(Account).where(Account.user_id == actor.id)
+    ).all()
+
+    return accounts
+
+
 @router.get("")
 def get_accounts(
     db: Session = Depends(get_db),
@@ -172,3 +185,5 @@ def unfreeze_account(
     db.refresh(account)
 
     return account
+
+
