@@ -44,11 +44,22 @@ def can_update_user(actor: UserOut, target: UserOut) -> bool:
     return False
 
 
-def can_delete_user(actor: UserOut) -> bool:
-    """Admin only."""
-    return actor.role == UserRole.ADMIN
+def can_delete_user(actor: UserOut, target: UserOut) -> bool:
+    """Admins may delete users, but may not delete themselves."""
+    if actor.role != UserRole.ADMIN:
+        return False
 
+    if actor.id == target.id:
+        return False
 
-def can_update_role(actor: UserOut) -> bool:
-    """Admin only — role changes never ride along with a regular profile edit."""
-    return actor.role == UserRole.ADMIN
+    return True
+
+def can_update_role(actor: UserOut, target: UserOut) -> bool:
+    """Admins may change roles, but may not change their own role."""
+    if actor.role != UserRole.ADMIN:
+        return False
+
+    if actor.id == target.id:
+        return False
+
+    return True

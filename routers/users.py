@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from core import permissions
 from core.dependencies import get_current_user
+from core.security import hash_password
 from database import get_db
 from models.user import User
 from models.user import UserRole as ModelRole
@@ -106,6 +107,7 @@ def create_user(
         last_name=payload.last_name,
         email=email,
         dob=payload.dob,
+        hashed_password=hash_password(payload.password),
     )
     user_repo.create(db, user)
     db.commit()
@@ -190,8 +192,10 @@ def update_user_role(
         )
 
     target.role = ModelRole(payload.role.value)
+
     db.commit()
     db.refresh(target)
+
     return target
 
 
@@ -222,6 +226,13 @@ def delete_user(
             detail=f"User not found: {user_id}",
         )
 
+    if target.id == actor.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admins cannot delete themselves",
+        )
+
     user_repo.delete(db, target)
     db.commit()
+
     return None
