@@ -5,9 +5,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
+from core.dependencies import get_current_user, require_role
+from data.enums import UserRole
 from database import get_db
 from models.account import Account
 from models.transactions import Transaction
+from models.user import User
 
 router = APIRouter(prefix="/accounts", tags=["transactions"])
 
@@ -38,7 +41,12 @@ def get_account(db: Session, account_id: int) -> Account:
 
 
 @router.post("/{account_id}/deposit", response_model=TransactionOut)
-def deposit(account_id: int, request: TransactionCreate, db: Session = Depends(get_db)):
+def deposit(
+    account_id: int,
+    request: TransactionCreate,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_role("teller", "admin")),
+):
     if request.amount <= 0:
         raise HTTPException(
             status_code=400,
@@ -69,7 +77,12 @@ def deposit(account_id: int, request: TransactionCreate, db: Session = Depends(g
 
 
 @router.post("/{account_id}/withdraw", response_model=TransactionOut)
-def withdraw(account_id: int, request: TransactionCreate, db: Session = Depends(get_db)):
+def withdraw(
+    account_id: int,
+    request: TransactionCreate,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_role("teller", "admin")),
+):
     if request.amount <= 0:
         raise HTTPException(
             status_code=400,
@@ -106,8 +119,18 @@ def withdraw(account_id: int, request: TransactionCreate, db: Session = Depends(
 
 
 @router.get("/{account_id}/transactions", response_model=list[TransactionOut])
-def get_account_transactions(account_id: int, db: Session = Depends(get_db)):
-    get_account(db, account_id)
+def get_account_transactions(
+    account_id: int,
+    db: Session = Depends(get_db),
+    actor: User = Depends(get_current_user),
+):
+    account = get_account(db, account_id)
+
+    if actor.role not in (UserRole.ADMIN, UserRole.TELLER) and account.user_id != actor.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Not permitted to view this account's transactions",
+        )
 
     return (
         db.query(Transaction)
