@@ -178,17 +178,18 @@ def update_user_role(
     actor: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if not permissions.can_update_role(actor):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required",
-        )
-
     target = user_repo.get_by_id(db, user_id)
+
     if target is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User not found: {user_id}",
+        )
+
+    if not permissions.can_update_role(actor, target):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not permitted to change this user's role",
         )
 
     target.role = ModelRole(payload.role.value)
@@ -213,23 +214,18 @@ def delete_user(
     actor: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if not permissions.can_delete_user(actor):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required",
-        )
-
     target = user_repo.get_by_id(db, user_id)
+
     if target is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User not found: {user_id}",
         )
 
-    if target.id == actor.id:
+    if not permissions.can_delete_user(actor, target):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admins cannot delete themselves",
+            detail="Not permitted to delete this user",
         )
 
     user_repo.delete(db, target)
