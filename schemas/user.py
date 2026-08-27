@@ -5,7 +5,7 @@ from pydantic import BaseModel, EmailStr
 
 from data.enums import UserRole
 
-__all__ = ["UserRole", "UserOut", "UserCreate", "UserUpdate", "UserRoleUpdate"]
+__all__ = ["UserRole", "UserOut", "UserCreate", "UserUpdate", "UserRoleUpdate", "AdminPasswordReset",]
 
 class UserOut(BaseModel):
     id: UUID
@@ -30,3 +30,6 @@ class UserUpdate(BaseModel):
 
 class UserRoleUpdate(BaseModel):
     role: UserRole
+
+class AdminPasswordReset(BaseModel):
+    new_password: str

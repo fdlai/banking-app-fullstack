@@ -1,3 +1,4 @@
+from models.user import User
 from schemas.user import UserOut, UserRole
 
 STAFF = (UserRole.TELLER, UserRole.ADMIN)
@@ -56,6 +57,16 @@ def can_delete_user(actor: UserOut, target: UserOut) -> bool:
 
 def can_update_role(actor: UserOut, target: UserOut) -> bool:
     """Admins may change roles, but may not change their own role."""
+    if actor.role != UserRole.ADMIN:
+        return False
+
+    if actor.id == target.id:
+        return False
+
+    return True
+
+def can_reset_password(actor: UserOut, target: UserOut) -> bool:
+    """Admins may reset user passwords, but may not reset their own."""
     if actor.role != UserRole.ADMIN:
         return False
 

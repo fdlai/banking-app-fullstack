@@ -10,7 +10,7 @@ from database import get_db
 from models.user import User
 from models.user import UserRole as ModelRole
 from repositories import user_repo
-from schemas.user import UserCreate, UserOut, UserRole, UserRoleUpdate, UserUpdate
+from schemas.user import  UserCreate, UserOut, UserRole, UserRoleUpdate, UserUpdate, AdminPasswordReset
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -232,3 +232,39 @@ def delete_user(
     db.commit()
 
     return None
+
+@router.patch(
+    "/{user_id}/password",
+    response_model=UserOut,
+    responses={
+        401: {"description": "Unknown or missing acting user"},
+        403: {"description": "Admin access required"},
+        404: {"description": "User not found"},
+    },
+)
+def reset_user_password(
+    user_id: UUID,
+    payload: AdminPasswordReset,
+    actor: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    target = user_repo.get_by_id(db, user_id)
+
+    if target is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User not found: {user_id}",
+        )
+
+    if not permissions.can_reset_password(actor, target):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not permitted to reset this user's password",
+        )
+
+    target.hashed_password = hash_password(payload.new_password)
+
+    db.commit()
+    db.refresh(target)
+
+    return target
