@@ -1,0 +1,12 @@
+.env
+.env.*
+.venv/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+.vscode/
+node_modules/
+frontend/node_modules/
+dist/
+build/
