@@ -4,3 +4,5 @@ __pycache__/
 .env
 .pytest_cache/
 .idea/
+lambda_package/
+lambda_deployment.zip
